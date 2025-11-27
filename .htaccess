@@ -1,5 +1,10 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
+  
+  # Serve .mjs files with correct MIME type
+  <IfModule mod_mime.c>
+    AddType text/javascript .mjs
+  </IfModule>
 
   # Allow existing files and directories
   RewriteCond %{REQUEST_FILENAME} -f
