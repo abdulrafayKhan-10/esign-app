@@ -205,7 +205,14 @@ const GuestSigner = () => {
                         width: pdfPageSize ? pdfPageSize.width * scale : 'auto',
                         height: pdfPageSize ? pdfPageSize.height * scale : 'auto'
                     }}>
-                        <Document file={fileUrl} onLoadSuccess={onDocumentLoadSuccess}>
+                        <Document
+                            file={fileUrl}
+                            onLoadSuccess={onDocumentLoadSuccess}
+                            onLoadError={(error) => {
+                                console.error('PDF Load Error:', error);
+                                toast.error("Failed to load PDF. Please try refreshing.");
+                            }}
+                        >
                             <Page
                                 pageNumber={pageNumber}
                                 scale={scale}
@@ -400,33 +407,33 @@ const GuestSigner = () => {
     );
 }
 
-    const toolbarBtnStyle = {
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '8px',
-        padding: '0.5rem',
-        cursor: 'pointer',
-        color: '#4b5563',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'all 0.2s'
-    };
+const toolbarBtnStyle = {
+    background: 'white',
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '0.5rem',
+    cursor: 'pointer',
+    color: '#4b5563',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s'
+};
 
-    const navBtnStyle = {
-        background: 'white',
-        border: 'none',
-        borderRadius: '50%',
-        width: '36px',
-        height: '36px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        color: '#4b5563',
-        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-    };
+const navBtnStyle = {
+    background: 'white',
+    border: 'none',
+    borderRadius: '50%',
+    width: '36px',
+    height: '36px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    color: '#4b5563',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+};
 
-    export default GuestSigner;
+export default GuestSigner;
 
 
