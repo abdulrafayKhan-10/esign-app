@@ -191,6 +191,27 @@ class DocumentController extends Controller
             'guest_id' => 'required|string',
         ]);
 
+        $ip = $request->ip();
+
+        // Check if IP is whitelisted (belongs to a registered user)
+        $isWhitelisted = \App\Models\User::where('last_ip_address', $ip)->exists();
+
+        if (!$isWhitelisted) {
+            $guestUsage = \App\Models\GuestUsage::firstOrCreate(
+                ['ip_address' => $ip],
+                ['usage_count' => 0]
+            );
+
+            if ($guestUsage->usage_count >= 5) {
+                return response()->json([
+                    'message' => 'Guest limit reached. Please create an account to continue.',
+                    'limit_reached' => true
+                ], 403);
+            }
+
+            $guestUsage->increment('usage_count');
+        }
+
         $path = $request->file('file')->store('documents', 'public');
 
         $document = Document::create([

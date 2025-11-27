@@ -7,21 +7,13 @@ import { toast } from 'react-toastify';
 import { FaCloudUploadAlt, FaSpinner, FaLock, FaUserPlus } from 'react-icons/fa';
 
 const GuestUpload = () => {
+    const [limitReached, setLimitReached] = useState(false);
     const [uploading, setUploading] = useState(false);
     const navigate = useNavigate();
-    const [usageCount, setUsageCount] = useState(0);
 
-    useEffect(() => {
-        const count = parseInt(localStorage.getItem('guest_usage_count') || '0');
-        setUsageCount(count);
-    }, []);
+    // Removed client-side usage count check in favor of server-side IP tracking
 
     const onDrop = async (acceptedFiles) => {
-        if (usageCount >= 1) {
-            toast.info("You've reached the free guest limit. Please create an account to continue.");
-            return;
-        }
-
         const file = acceptedFiles[0];
         if (!file) return;
 
@@ -46,7 +38,12 @@ const GuestUpload = () => {
             navigate(`/guest/sign/${response.data.id}`);
         } catch (error) {
             console.error(error);
-            toast.error("Upload failed.");
+            if (error.response && error.response.status === 403 && error.response.data.limit_reached) {
+                setLimitReached(true);
+                toast.info(error.response.data.message);
+            } else {
+                toast.error("Upload failed.");
+            }
         } finally {
             setUploading(false);
         }
@@ -56,10 +53,10 @@ const GuestUpload = () => {
         onDrop,
         accept: { 'application/pdf': ['.pdf'] },
         multiple: false,
-        disabled: usageCount >= 1
+        disabled: limitReached
     });
 
-    if (usageCount >= 1) {
+    if (limitReached) {
         return (
             <div className="container" style={{ padding: '4rem 0', minHeight: '80vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                 <div className="card" style={{ maxWidth: '500px', width: '100%', textAlign: 'center', padding: '3rem' }}>

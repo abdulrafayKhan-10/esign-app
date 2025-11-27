@@ -42,6 +42,9 @@ class AuthController extends Controller
         }
 
         $user = User::where('email', $request['email'])->firstOrFail();
+        
+        // Update IP for whitelisting
+        $user->update(['last_ip_address' => $request->ip()]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
