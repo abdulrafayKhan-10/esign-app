@@ -8,10 +8,7 @@ import { toast } from 'react-toastify';
 import { FaPenNib, FaCheck, FaTimes, FaUpload, FaKeyboard, FaPen, FaChevronLeft, FaChevronRight, FaExpand, FaCompress } from 'react-icons/fa';
 
 // Set worker
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const GuestSigner = () => {
     const { id } = useParams();
@@ -401,35 +398,35 @@ const GuestSigner = () => {
             )}
         </div>
     );
-};
+}
 
-const toolbarBtnStyle = {
-    background: 'white',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    padding: '0.5rem',
-    cursor: 'pointer',
-    color: '#4b5563',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    transition: 'all 0.2s'
-};
+    const toolbarBtnStyle = {
+        background: 'white',
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '0.5rem',
+        cursor: 'pointer',
+        color: '#4b5563',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: 'all 0.2s'
+    };
 
-const navBtnStyle = {
-    background: 'white',
-    border: 'none',
-    borderRadius: '50%',
-    width: '36px',
-    height: '36px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    cursor: 'pointer',
-    color: '#4b5563',
-    boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-};
+    const navBtnStyle = {
+        background: 'white',
+        border: 'none',
+        borderRadius: '50%',
+        width: '36px',
+        height: '36px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        color: '#4b5563',
+        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+    };
 
-export default GuestSigner;
+    export default GuestSigner;
 
 

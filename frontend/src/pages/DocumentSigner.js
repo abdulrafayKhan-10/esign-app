@@ -7,10 +7,7 @@ import { toast } from 'react-toastify';
 import { FaPenNib, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaExpand, FaCompress, FaInfoCircle } from 'react-icons/fa';
 
 // Set worker for react-pdf
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.min.mjs',
-    import.meta.url,
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const DocumentSigner = () => {
     const { id } = useParams();
