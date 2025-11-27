@@ -17,9 +17,6 @@
   RewriteCond %{REQUEST_URI} ^/api
   RewriteRule ^ backend/public/index.php [L,QSA]
 
-  # Route storage requests to Laravel public storage
-  RewriteCond %{REQUEST_URI} ^/storage
-  RewriteRule ^storage/(.*)$ backend/public/storage/$1 [L]
 
   # Route everything else to React
   RewriteRule ^ index.html [L]
