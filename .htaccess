@@ -1,0 +1,17 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Allow existing files and directories
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Route API requests to Laravel backend
+  RewriteCond %{REQUEST_URI} ^/api
+  RewriteRule ^ backend/public/index.php [L,QSA]
+
+  # Route everything else to React
+  RewriteRule ^ index.html [L]
+</IfModule>
