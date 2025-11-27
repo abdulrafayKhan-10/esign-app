@@ -206,7 +206,105 @@ class DocumentController extends Controller
 
     public function guestSign(Request $request, $id)
     {
-        // ... existing code ...
+        \Illuminate\Support\Facades\Log::info("Guest sign request received for doc ID: $id");
+        
+        $request->validate([
+            'guest_id' => 'required|string',
+            'signature_data' => 'required|string',
+            'page' => 'integer|min:1',
+            'x' => 'numeric',
+            'y' => 'numeric',
+            'w' => 'numeric',
+            'h' => 'numeric',
+        ]);
+
+        try {
+            $document = Document::where('guest_id', $request->guest_id)->findOrFail($id);
+
+            // Path to original file
+            $originalPath = storage_path('app/public/' . $document->original_file_path);
+            
+            if (!file_exists($originalPath)) {
+                return response()->json(['message' => 'Original file not found'], 404);
+            }
+
+            // Initialize FPDI
+            $pdf = new Fpdi();
+            $pageCount = $pdf->setSourceFile($originalPath);
+
+            // Import pages
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $pdf->AddPage();
+                $pdf->useTemplate($templateId);
+
+                // Apply signature on the specified page
+                if ($pageNo == ($request->page ?? 1)) {
+                    // Convert base64 signature to temporary image file
+                    $sigData = $request->signature_data;
+                    // Remove header if present
+                    if (preg_match('/^data:image\/(\w+);base64,/', $sigData, $type)) {
+                        $sigData = substr($sigData, strpos($sigData, ',') + 1);
+                        $type = strtolower($type[1]);
+                    } else {
+                        // Default to png if no header
+                        $type = 'png';
+                    }
+
+                    $sigData = base64_decode($sigData);
+                    $tempSigPath = storage_path('app/public/temp_guest_sig_' . uniqid() . '.' . $type);
+                    file_put_contents($tempSigPath, $sigData);
+
+                    // Get PDF page size
+                    $size = $pdf->getTemplateSize($templateId);
+                    $pdfWidth = $size['width'];
+                    $pdfHeight = $size['height'];
+
+                    // Calculate coordinates
+                    $reqX = (float)($request->x ?? 0);
+                    $reqY = (float)($request->y ?? 0);
+                    $reqW = (float)($request->w ?? 0.2);
+                    $reqH = (float)($request->h ?? 0.05);
+
+                    if ($reqX <= 1 && $reqY <= 1 && $reqW <= 1) {
+                        $x = $reqX * $pdfWidth;
+                        $y = $reqY * $pdfHeight;
+                        $width = $reqW * $pdfWidth;
+                        $height = $reqH * $pdfHeight;
+                    } else {
+                        $x = $reqX;
+                        $y = $reqY;
+                        $width = $reqW;
+                        $height = $reqH;
+                    }
+                    
+                    $pdf->Image($tempSigPath, $x, $y, $width, $height);
+                    
+                    if (file_exists($tempSigPath)) {
+                        unlink($tempSigPath);
+                    }
+                }
+            }
+
+            // Save signed PDF
+            $signedFileName = 'signed_' . basename($document->original_file_path);
+            $signedPath = 'documents/' . $signedFileName;
+            $fullSignedPath = storage_path('app/public/' . $signedPath);
+            
+            $pdf->Output($fullSignedPath, 'F');
+
+            // Update document record
+            $document->update([
+                'signed_file_path' => $signedPath,
+                'status' => 'signed',
+            ]);
+
+            return response()->json($document);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Guest Signing Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to sign document: ' . $e->getMessage()], 500);
+        }
     }
 
     public function guestGet(Request $request, $id)

@@ -126,6 +126,9 @@ const GuestSigner = () => {
 
             toast.success("Document signed!");
 
+            // Update local state to show download button
+            setDocumentData(prev => ({ ...prev, status: 'signed', signed_file_path: 'true' }));
+
             // Retry logic for download
             const downloadWithRetry = async (retries = 10, delay = 2000) => {
                 try {
@@ -286,29 +289,63 @@ const GuestSigner = () => {
                 )}
 
                 <div style={{ marginTop: 'auto' }}>
-                    <button
-                        onClick={handleSign}
-                        disabled={!signatureData}
-                        style={{
-                            width: '100%',
-                            padding: '1rem',
-                            background: signatureData ? 'linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)' : '#e5e7eb',
-                            color: signatureData ? 'white' : '#9ca3af',
-                            border: 'none',
-                            fontSize: '1.1rem',
-                            fontWeight: 700,
-                            cursor: signatureData ? 'pointer' : 'not-allowed',
-                            borderRadius: '12px',
-                            boxShadow: signatureData ? '0 10px 20px -5px rgba(74, 0, 224, 0.4)' : 'none',
-                            transition: 'all 0.3s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '0.5rem'
-                        }}
-                    >
-                        <FaCheck /> Finish & Download
-                    </button>
+                    {!documentData.signed_file_path && !signatureData && (
+                        <p style={{ fontSize: '0.9rem', color: '#6b7280', textAlign: 'center' }}>
+                            Place your signature on the document to finish.
+                        </p>
+                    )}
+
+                    {documentData.status === 'signed' ? (
+                        <a
+                            href={`${api.defaults.baseURL || '/api'}/guest/documents/${id}/download?guest_id=${localStorage.getItem('guest_id')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                background: '#10b981',
+                                color: 'white',
+                                border: 'none',
+                                fontSize: '1.1rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                borderRadius: '12px',
+                                boxShadow: '0 10px 20px -5px rgba(16, 185, 129, 0.4)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <FaCheck /> Download Signed PDF
+                        </a>
+                    ) : (
+                        <button
+                            onClick={handleSign}
+                            disabled={!signatureData}
+                            style={{
+                                width: '100%',
+                                padding: '1rem',
+                                background: signatureData ? 'linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)' : '#e5e7eb',
+                                color: signatureData ? 'white' : '#9ca3af',
+                                border: 'none',
+                                fontSize: '1.1rem',
+                                fontWeight: 700,
+                                cursor: signatureData ? 'pointer' : 'not-allowed',
+                                borderRadius: '12px',
+                                boxShadow: signatureData ? '0 10px 20px -5px rgba(74, 0, 224, 0.4)' : 'none',
+                                transition: 'all 0.3s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem'
+                            }}
+                        >
+                            <FaCheck /> Finish & Download
+                        </button>
+                    )}
                 </div>
             </div>
 
