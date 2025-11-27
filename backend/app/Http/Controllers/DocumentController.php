@@ -181,4 +181,57 @@ class DocumentController extends Controller
 
         return response()->json(['message' => 'Document deleted']);
     }
+
+    // Guest Methods
+
+    public function guestUpload(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:pdf,docx|max:5120',
+            'guest_id' => 'required|string',
+        ]);
+
+        $path = $request->file('file')->store('documents', 'public');
+
+        $document = Document::create([
+            'user_id' => null,
+            'guest_id' => $request->guest_id,
+            'title' => $request->file('file')->getClientOriginalName(),
+            'original_file_path' => $path,
+            'status' => 'pending',
+        ]);
+
+        return response()->json($document, 201);
+    }
+
+    public function guestSign(Request $request, $id)
+    {
+        // ... existing code ...
+    }
+
+    public function guestGet(Request $request, $id)
+    {
+        $request->validate([
+            'guest_id' => 'required|string',
+        ]);
+
+        $document = Document::where('guest_id', $request->guest_id)->findOrFail($id);
+
+        return response()->json($document);
+    }
+
+    public function guestDownload(Request $request, $id)
+    {
+        $request->validate([
+            'guest_id' => 'required|string',
+        ]);
+
+        $document = Document::where('guest_id', $request->guest_id)->findOrFail($id);
+
+        if ($document->status !== 'signed' || !$document->signed_file_path) {
+            return response()->json(['message' => 'Document not signed yet'], 400);
+        }
+
+        return Storage::disk('public')->download($document->signed_file_path);
+    }
 }

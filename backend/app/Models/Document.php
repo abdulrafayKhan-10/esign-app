@@ -11,6 +11,7 @@ class Document extends Model
 
     protected $fillable = [
         'user_id',
+        'guest_id',
         'title',
         'original_file_path',
         'signed_file_path',

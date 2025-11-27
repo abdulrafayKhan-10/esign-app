@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\SignatureController;
+use App\Http\Controllers\ContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -15,6 +16,13 @@ use App\Http\Controllers\SignatureController;
 // Public Routes
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/contact', [ContactController::class, 'store']);
+
+// Guest Routes
+Route::post('/guest/documents/upload', [DocumentController::class, 'guestUpload']);
+Route::get('/guest/documents/{id}', [DocumentController::class, 'guestGet']);
+Route::post('/guest/documents/{id}/sign', [DocumentController::class, 'guestSign']);
+Route::get('/guest/documents/{id}/download', [DocumentController::class, 'guestDownload']);
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
