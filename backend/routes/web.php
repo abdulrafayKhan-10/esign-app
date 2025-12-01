@@ -16,3 +16,5 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+Route::get('storage/{filename}', [App\Http\Controllers\FileServingController::class, 'serve'])->where('filename', '.*');
