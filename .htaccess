@@ -4,6 +4,7 @@
   # Serve .mjs files with correct MIME type
   <IfModule mod_mime.c>
     AddType text/javascript .mjs
+    AddType application/pdf .pdf
   </IfModule>
 
   # Allow existing files and directories
@@ -12,6 +13,10 @@
 
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
+
+  # Route storage requests to Laravel backend (for PDF files and other uploads)
+  RewriteCond %{REQUEST_URI} ^/storage
+  RewriteRule ^storage/(.*)$ backend/public/storage/$1 [L,QSA]
 
   # Route API requests to Laravel backend
   RewriteCond %{REQUEST_URI} ^/api
