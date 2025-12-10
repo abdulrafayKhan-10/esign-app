@@ -267,31 +267,118 @@ const DocumentSigner = () => {
                         )}
 
                         {/* Placed Signatures on Current Page */}
+                        {/* Placed Signatures on Current Page */}
                         {currentPageSignatures.map(sig => (
-                            <div
+                            <Rnd
                                 key={sig.id}
-                                style={{
-                                    position: 'absolute',
-                                    left: sig.x * pdfPageSize.width * scale,
-                                    top: sig.y * pdfPageSize.height * scale,
+                                size={{
                                     width: sig.w * pdfPageSize.width * scale,
-                                    height: sig.h * pdfPageSize.height * scale,
-                                    border: selectedPlacedSignatureId === sig.id ? '2px solid #10b981' : '2px solid transparent',
+                                    height: sig.h * pdfPageSize.height * scale
+                                }}
+                                position={{
+                                    x: sig.x * pdfPageSize.width * scale,
+                                    y: sig.y * pdfPageSize.height * scale
+                                }}
+                                disableDragging={selectedPlacedSignatureId !== sig.id}
+                                enableResizing={selectedPlacedSignatureId === sig.id ? {
+                                    bottomRight: true, bottomRight: true, topRight: true, bottomLeft: true, topLeft: true
+                                } : false}
+                                onDragStop={async (e, d) => {
+                                    const newX = d.x / (pdfPageSize.width * scale);
+                                    const newY = d.y / (pdfPageSize.height * scale);
+
+                                    // Optimistic update
+                                    setPlacedSignatures(prev => prev.map(s => s.id === sig.id ? { ...s, x: newX, y: newY } : s));
+
+                                    try {
+                                        await api.put(`/documents/${id}/signatures/${sig.id}`, {
+                                            x: newX,
+                                            y: newY,
+                                            w: sig.w,
+                                            h: sig.h
+                                        });
+                                    } catch (error) {
+                                        console.error("Failed to update position", error);
+                                        toast.error("Failed to save new position");
+                                        await fetchPlacedSignatures(); // Revert on error
+                                    }
+                                }}
+                                onResizeStop={async (e, direction, ref, delta, position) => {
+                                    const newW = parseInt(ref.style.width) / (pdfPageSize.width * scale);
+                                    const newH = parseInt(ref.style.height) / (pdfPageSize.height * scale);
+                                    const newX = position.x / (pdfPageSize.width * scale);
+                                    const newY = position.y / (pdfPageSize.height * scale);
+
+                                    // Optimistic update
+                                    setPlacedSignatures(prev => prev.map(s => s.id === sig.id ? { ...s, x: newX, y: newY, w: newW, h: newH } : s));
+
+                                    try {
+                                        await api.put(`/documents/${id}/signatures/${sig.id}`, {
+                                            x: newX,
+                                            y: newY,
+                                            w: newW,
+                                            h: newH
+                                        });
+                                    } catch (error) {
+                                        console.error("Failed to update size", error);
+                                        toast.error("Failed to save new size");
+                                        await fetchPlacedSignatures();
+                                    }
+                                }}
+                                bounds="parent"
+                                style={{
+                                    border: selectedPlacedSignatureId === sig.id ? '2px dashed #4a00e0' : '2px solid transparent',
                                     borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    background: selectedPlacedSignatureId === sig.id ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
-                                    transition: 'all 0.2s',
+                                    cursor: selectedPlacedSignatureId === sig.id ? 'move' : 'pointer',
                                     zIndex: selectedPlacedSignatureId === sig.id ? 50 : 10
                                 }}
-                                onClick={() => setSelectedPlacedSignatureId(sig.id)}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPlacedSignatureId(sig.id);
+                                }}
                             >
-                                <img src={sig.signature_data} alt="Placed Sig" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                                <img
+                                    src={sig.signature_data}
+                                    alt="Placed Sig"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
+                                />
                                 {selectedPlacedSignatureId === sig.id && (
-                                    <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#10b981', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                        <FaCheck size={10} />
-                                    </div>
+                                    <>
+                                        <div
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedPlacedSignatureId(null);
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                top: '-30px',
+                                                right: '0',
+                                                background: '#10b981',
+                                                color: 'white',
+                                                borderRadius: '4px',
+                                                padding: '2px 8px',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 600,
+                                                boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '4px'
+                                            }}
+                                        >
+                                            <FaCheck size={10} /> Done
+                                        </div>
+                                        <div style={{ position: 'absolute', top: '-10px', left: '-10px', background: '#dc2626', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)', cursor: 'pointer' }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeletePlacedSignature(sig.id);
+                                            }}
+                                        >
+                                            <FaTrash size={10} />
+                                        </div>
+                                    </>
                                 )}
-                            </div>
+                            </Rnd>
                         ))}
                     </div>
                 </div>

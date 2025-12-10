@@ -220,6 +220,30 @@ class DocumentController extends Controller
         }
     }
 
+    public function updateSignature(Request $request, $id, $signatureId)
+    {
+        $request->validate([
+            'x' => 'numeric|min:0|max:1',
+            'y' => 'numeric|min:0|max:1',
+            'w' => 'numeric|min:0|max:1',
+            'h' => 'numeric|min:0|max:1',
+        ]);
+
+        try {
+            $document = Document::where('user_id', Auth::id())->findOrFail($id);
+            $signature = \App\Models\DocumentSignature::where('document_id', $document->id)
+                ->findOrFail($signatureId);
+
+            $signature->update($request->only(['x', 'y', 'w', 'h']));
+
+            return response()->json($signature);
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Update Signature Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to update signature'], 500);
+        }
+    }
+
     public function deleteSignaturePlace(Request $request, $id, $signatureId)
     {
         try {

@@ -58,5 +58,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/documents/{id}/signatures/{signatureId}', [DocumentController::class, 'deleteSignaturePlace']);
     Route::post('/documents/{id}/signatures/{signatureId}/duplicate', [DocumentController::class, 'duplicateSignature']);
     Route::post('/documents/{id}/signatures/{signatureId}/apply-all', [DocumentController::class, 'applyToAllPages']);
+    Route::put('/documents/{id}/signatures/{signatureId}', [DocumentController::class, 'updateSignature']); // New Update Route
     Route::post('/documents/{id}/finalize', [DocumentController::class, 'finalize']);
 });
