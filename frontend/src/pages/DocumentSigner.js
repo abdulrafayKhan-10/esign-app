@@ -100,7 +100,7 @@ const DocumentSigner = () => {
             });
             toast.success("Signature added!");
             await fetchPlacedSignatures();
-            
+
             // Reset position
             setPosition({ x: 50, y: 100 });
         } catch (error) {
@@ -154,12 +154,12 @@ const DocumentSigner = () => {
         try {
             const res = await api.post(`/documents/${id}/finalize`);
             toast.success("Document finalized successfully!");
-            
+
             // Start download logic
             const doc = res.data.document;
             const downloadUrl = `${api.defaults.baseURL || '/api'}/documents/${id}/download`;
             window.open(downloadUrl, '_blank');
-            
+
             navigate('/dashboard');
         } catch (error) {
             console.error(error);
@@ -400,47 +400,90 @@ const DocumentSigner = () => {
                     </div>
 
                     {/* Placed Signatures List */}
-                    <div>
-                        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#374151', marginBottom: '1rem' }}>Placed Signatures ({placedSignatures.length})</h4>
+                    <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#374151', marginBottom: '1rem', flexShrink: 0 }}>Placed Signatures ({placedSignatures.length})</h4>
                         {placedSignatures.length === 0 ? (
                             <div style={{ padding: '1.5rem', background: '#f9fafb', borderRadius: '12px', textAlign: 'center', color: '#6b7280' }}>
                                 <p style={{ fontSize: '0.9rem' }}>No signatures placed yet.</p>
                             </div>
                         ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
-                                {placedSignatures.map(sig => (
-                                    <div
-                                        key={sig.id}
-                                        style={{
-                                            border: selectedPlacedSignatureId === sig.id ? '2px solid #10b981' : '1px solid #e5e7eb',
-                                            borderRadius: '12px',
-                                            padding: '0.75rem',
-                                            background: selectedPlacedSignatureId === sig.id ? 'rgba(16, 185, 129, 0.03)' : 'white',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                        }}
-                                        onClick={() => {
-                                            setSelectedPlacedSignatureId(sig.id);
-                                            setPageNumber(sig.page);
-                                        }}
-                                    >
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>Page {sig.page}</span>
-                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDuplicateSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Duplicate">
-                                                    <FaCopy size={12} />
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleApplyToAllPages(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Apply to all pages">
-                                                    <FaLayerGroup size={12} />
-                                                </button>
-                                                <button onClick={(e) => { e.stopPropagation(); handleDeletePlacedSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#dc2626' }} title="Delete">
-                                                    <FaTrash size={12} />
-                                                </button>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+                                {/* Group signatures by page */}
+                                {Object.entries(placedSignatures.reduce((acc, sig) => {
+                                    (acc[sig.page] = acc[sig.page] || []).push(sig);
+                                    return acc;
+                                }, {})).sort((a, b) => Number(a[0]) - Number(b[0])).map(([page, signatures]) => (
+                                    <div key={page} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            padding: '0.25rem 0.5rem',
+                                            background: '#f3f4f6',
+                                            borderRadius: '6px',
+                                            color: '#4b5563',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 700
+                                        }}>
+                                            <span>Page {page}</span>
+                                            <span style={{
+                                                background: '#e5e7eb',
+                                                padding: '0 6px',
+                                                borderRadius: '10px',
+                                                fontSize: '0.75rem'
+                                            }}>{signatures.length}</span>
+                                        </div>
+
+                                        {signatures.map(sig => (
+                                            <div
+                                                key={sig.id}
+                                                style={{
+                                                    border: selectedPlacedSignatureId === sig.id ? '2px solid #10b981' : '1px solid #e5e7eb',
+                                                    borderRadius: '12px',
+                                                    padding: '0.75rem',
+                                                    background: selectedPlacedSignatureId === sig.id ? 'rgba(16, 185, 129, 0.03)' : 'white',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    position: 'relative'
+                                                }}
+                                                onClick={() => {
+                                                    setSelectedPlacedSignatureId(sig.id);
+                                                    setPageNumber(sig.page);
+                                                }}
+                                            >
+                                                <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDuplicateSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Duplicate">
+                                                            <FaCopy size={12} />
+                                                        </button>
+                                                        {/* Apply to all logic: Only show if numPages > 1 */}
+                                                        {numPages > 1 && (
+                                                            <button onClick={(e) => { e.stopPropagation(); handleApplyToAllPages(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Apply to all pages">
+                                                                <FaLayerGroup size={12} />
+                                                            </button>
+                                                        )}
+                                                        <button onClick={(e) => { e.stopPropagation(); handleDeletePlacedSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#dc2626' }} title="Delete">
+                                                            <FaTrash size={12} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', borderRadius: '8px', padding: '0.25rem' }}>
+                                                    <img src={sig.signature_data} alt="Sig" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                                </div>
+                                                {selectedPlacedSignatureId === sig.id && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        left: '-4px',
+                                                        top: '50%',
+                                                        transform: 'translateY(-50%)',
+                                                        width: '4px',
+                                                        height: '60%',
+                                                        background: '#10b981',
+                                                        borderRadius: '0 4px 4px 0'
+                                                    }} />
+                                                )}
                                             </div>
-                                        </div>
-                                        <div style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', borderRadius: '8px', padding: '0.25rem' }}>
-                                            <img src={sig.signature_data} alt="Sig" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                                        </div>
+                                        ))}
                                     </div>
                                 ))}
                             </div>
