@@ -60,6 +60,9 @@ class DocumentController extends Controller
                 return response()->json(['message' => 'Original file not found'], 404);
             }
 
+            // Sanitize PDF to ensure FPDI compatibility
+            $this->sanitizePdf($originalPath);
+
             // Initialize FPDI
             $pdf = new Fpdi();
             $pageCount = $pdf->setSourceFile($originalPath);
@@ -306,6 +309,36 @@ class DocumentController extends Controller
         }
     }
 
+    // Helper to sanitize PDF for FPDI compatibility
+    private function sanitizePdf($filePath)
+    {
+        try {
+            $outputPath = $filePath . '_temp.pdf';
+            // Use Ghostscript to convert PDF to version 1.4 (compatible with free FPDI)
+            // -dPDFSETTINGS=/screen or /default can be used. /default is better quality.
+            $command = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile=" . escapeshellarg($outputPath) . " " . escapeshellarg($filePath);
+            
+            exec($command, $output, $returnCode);
+
+            if ($returnCode === 0 && file_exists($outputPath)) {
+                // Replace original with sanitized version
+                if (file_exists($filePath)) {
+                    unlink($filePath);
+                }
+                rename($outputPath, $filePath);
+                \Illuminate\Support\Facades\Log::info("PDF sanitized successfully: " . $filePath);
+                return true;
+            } else {
+                \Illuminate\Support\Facades\Log::warning("Ghostscript failed to sanitize PDF. Return code: $returnCode");
+                if (file_exists($outputPath)) unlink($outputPath);
+                return false;
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("PDF Sanitization Error: " . $e->getMessage());
+            return false;
+        }
+    }
+
     public function finalize(Request $request, $id)
     {
         try {
@@ -323,7 +356,11 @@ class DocumentController extends Controller
                 return response()->json(['message' => 'Original file not found'], 404);
             }
 
+            // Sanitize PDF to ensure FPDI compatibility
+            $this->sanitizePdf($originalPath);
+
             $pdf = new Fpdi();
+            // ... rest of the function remains the same ...
             $pageCount = $pdf->setSourceFile($originalPath);
 
             $signaturesByPage = $signatures->groupBy('page');
@@ -395,9 +432,14 @@ class DocumentController extends Controller
 
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Finalize Error: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to finalize document'], 500);
+            // More user friendly error
+            if (strpos($e->getMessage(), 'compression technique') !== false) {
+                return response()->json(['message' => 'Failed to process PDF. content is compressed in an unsupported way.'], 500);
+            }
+            return response()->json(['message' => 'Failed to finalize document: ' . $e->getMessage()], 500);
         }
     }
+
 
     public function getSignatures(Request $request, $id)
     {
@@ -476,6 +518,9 @@ class DocumentController extends Controller
             if (!file_exists($originalPath)) {
                 return response()->json(['message' => 'Original file not found'], 404);
             }
+
+            // Sanitize PDF to ensure FPDI compatibility
+            $this->sanitizePdf($originalPath);
 
             // Initialize FPDI
             $pdf = new Fpdi();
@@ -764,6 +809,9 @@ class DocumentController extends Controller
                 \Illuminate\Support\Facades\Log::error("File not readable at $originalPath");
                 return response()->json(['message' => 'Cannot read original file'], 500);
             }
+
+            // Sanitize PDF to ensure FPDI compatibility
+            $this->sanitizePdf($originalPath);
 
             // Initialize FPDI
             $pdf = new Fpdi();
