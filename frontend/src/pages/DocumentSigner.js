@@ -4,7 +4,7 @@ import { Document, Page, pdfjs } from 'react-pdf';
 import { Rnd } from 'react-rnd';
 import api from '../api';
 import { toast } from 'react-toastify';
-import { FaPenNib, FaCheck, FaTimes, FaChevronLeft, FaChevronRight, FaExpand, FaCompress, FaInfoCircle } from 'react-icons/fa';
+import { FaPenNib, FaCheck, FaChevronLeft, FaChevronRight, FaExpand, FaCompress, FaInfoCircle, FaCopy, FaLayerGroup, FaTrash } from 'react-icons/fa';
 
 // Set worker for react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -13,73 +13,157 @@ const DocumentSigner = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [documentData, setDocumentData] = useState(null);
-    const [signatures, setSignatures] = useState([]);
-    const [selectedSignature, setSelectedSignature] = useState(null);
+    const [savedSignatures, setSavedSignatures] = useState([]);
+    const [selectedSavedSignature, setSelectedSavedSignature] = useState(null); // ID of template signature
+
+    // Placed Signatures State
+    const [placedSignatures, setPlacedSignatures] = useState([]);
+    const [selectedPlacedSignatureId, setSelectedPlacedSignatureId] = useState(null);
+
     const [numPages, setNumPages] = useState(null);
     const [pageNumber, setPageNumber] = useState(1);
     const [pdfPageSize, setPdfPageSize] = useState(null);
     const [scale, setScale] = useState(1.0);
 
-    // State for position and size
+    // State for placement position
     const [position, setPosition] = useState({ x: 50, y: 100 });
     const [size, setSize] = useState({ width: 150, height: 60 });
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const docRes = await api.get('/documents'); // Ideally get single doc
+                // Fetch document details
+                const docRes = await api.get('/documents');
                 const doc = docRes.data.find(d => d.id === parseInt(id));
-                setDocumentData(doc);
+                if (doc) {
+                    setDocumentData(doc);
+                } else {
+                    toast.error("Document not found.");
+                    navigate('/dashboard');
+                    return;
+                }
 
+                // Fetch user's saved signature templates
                 const sigRes = await api.get('/signatures');
-                setSignatures(sigRes.data);
-                // Don't auto-select to encourage user to choose
+                setSavedSignatures(sigRes.data);
+
+                // Fetch already placed signatures on this document
+                await fetchPlacedSignatures();
+
             } catch (error) {
+                console.error(error);
                 toast.error("Failed to load data.");
             }
         };
         fetchData();
-    }, [id]);
+    }, [id, navigate]);
 
-    const onDocumentLoadSuccess = ({ numPages }) => {
-        setNumPages(numPages);
+    const fetchPlacedSignatures = async () => {
+        try {
+            const res = await api.get(`/documents/${id}/signatures`);
+            setPlacedSignatures(res.data);
+        } catch (error) {
+            console.error("Failed to fetch placed signatures:", error);
+        }
     };
 
-    const onPageLoadSuccess = (page) => {
-        setPdfPageSize({ width: page.width, height: page.height });
-    };
+    const onDocumentLoadSuccess = ({ numPages }) => setNumPages(numPages);
+    const onPageLoadSuccess = (page) => setPdfPageSize({ width: page.width, height: page.height });
 
-    const handleSign = async () => {
-        if (!selectedSignature) {
-            toast.error("Please select a signature first.");
+    const handleAddSignature = async () => {
+        if (!selectedSavedSignature) {
+            toast.error("Please select a signature template first.");
             return;
         }
-
         if (!pdfPageSize) {
             toast.error("PDF page not fully loaded.");
             return;
         }
 
-        // Calculate relative coordinates (0 to 1)
-        const relX = position.x / pdfPageSize.width;
-        const relY = position.y / pdfPageSize.height;
-        const relW = size.width / pdfPageSize.width;
-        const relH = size.height / pdfPageSize.height;
+        const template = savedSignatures.find(s => s.id === selectedSavedSignature);
+        if (!template) return;
+
+        // Calculate relative coordinates
+        const relX = position.x / (pdfPageSize.width * scale);
+        const relY = position.y / (pdfPageSize.height * scale);
+        const relW = size.width / (pdfPageSize.width * scale);
+        const relH = size.height / (pdfPageSize.height * scale);
 
         try {
-            await api.post(`/documents/${id}/sign`, {
-                signature_id: selectedSignature,
+            await api.post(`/documents/${id}/add-signature`, {
+                signature_data: template.signature_data,
                 page: pageNumber,
                 x: relX,
                 y: relY,
                 w: relW,
                 h: relH
             });
-            toast.success("Document signed successfully!");
+            toast.success("Signature added!");
+            await fetchPlacedSignatures();
+            
+            // Reset position
+            setPosition({ x: 50, y: 100 });
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to add signature.");
+        }
+    };
+
+    const handleDeletePlacedSignature = async (signatureId) => {
+        try {
+            await api.delete(`/documents/${id}/signatures/${signatureId}`);
+            toast.success("Signature removed!");
+            await fetchPlacedSignatures();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to delete signature.");
+        }
+    };
+
+    const handleDuplicateSignature = async (signatureId) => {
+        try {
+            await api.post(`/documents/${id}/signatures/${signatureId}/duplicate`);
+            toast.success("Signature duplicated!");
+            await fetchPlacedSignatures();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to duplicate signature.");
+        }
+    };
+
+    const handleApplyToAllPages = async (signatureId) => {
+        if (!numPages) return;
+        try {
+            await api.post(`/documents/${id}/signatures/${signatureId}/apply-all`, {
+                num_pages: numPages
+            });
+            toast.success(`Signature applied to all ${numPages} pages!`);
+            await fetchPlacedSignatures();
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to apply to all pages.");
+        }
+    };
+
+    const handleFinalize = async () => {
+        if (placedSignatures.length === 0) {
+            toast.error("Please add at least one signature before finalizing.");
+            return;
+        }
+
+        try {
+            const res = await api.post(`/documents/${id}/finalize`);
+            toast.success("Document finalized successfully!");
+            
+            // Start download logic
+            const doc = res.data.document;
+            const downloadUrl = `${api.defaults.baseURL || '/api'}/documents/${id}/download`;
+            window.open(downloadUrl, '_blank');
+            
             navigate('/dashboard');
         } catch (error) {
             console.error(error);
-            toast.error("Failed to sign document. Check console for details.");
+            toast.error("Failed to finalize document.");
         }
     };
 
@@ -89,8 +173,9 @@ const DocumentSigner = () => {
         </div>
     );
 
-    // Construct URL for PDF
     const fileUrl = `/storage/${documentData.original_file_path}`;
+    const currentPageSignatures = placedSignatures.filter(sig => sig.page === pageNumber);
+    const selectedTemplateData = savedSignatures.find(s => s.id === selectedSavedSignature);
 
     return (
         <div style={{ display: 'flex', height: 'calc(100vh - 80px)', background: '#f3f4f6', overflow: 'hidden' }}>
@@ -112,6 +197,9 @@ const DocumentSigner = () => {
                         <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', background: '#e0e7ff', color: '#4338ca', borderRadius: '12px' }}>
                             Page {pageNumber} of {numPages}
                         </span>
+                        <span style={{ fontSize: '0.85rem', padding: '0.2rem 0.6rem', background: '#dcfce7', color: '#166534', borderRadius: '12px' }}>
+                            {placedSignatures.length} signature{placedSignatures.length !== 1 ? 's' : ''}
+                        </span>
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                         <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} style={toolbarBtnStyle}><FaCompress /></button>
@@ -126,7 +214,6 @@ const DocumentSigner = () => {
                         position: 'relative',
                         boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
                         transition: 'transform 0.2s ease',
-                        // Explicitly set dimensions to match PDF page for correct drag bounds
                         width: pdfPageSize ? pdfPageSize.width * scale : 'auto',
                         height: pdfPageSize ? pdfPageSize.height * scale : 'auto'
                     }}>
@@ -144,8 +231,8 @@ const DocumentSigner = () => {
                             />
                         </Document>
 
-                        {/* Draggable Overlay */}
-                        {selectedSignature && pdfPageSize && (
+                        {/* Draggable Template Overlay */}
+                        {selectedTemplateData && pdfPageSize && documentData.status !== 'signed' && (
                             <Rnd
                                 size={{ width: size.width * scale, height: size.height * scale }}
                                 position={{ x: position.x * scale, y: position.y * scale }}
@@ -164,26 +251,48 @@ const DocumentSigner = () => {
                                     border: '2px dashed #4a00e0',
                                     background: 'rgba(74, 0, 224, 0.1)',
                                     cursor: 'move',
-                                    borderRadius: '4px'
+                                    borderRadius: '4px',
+                                    zIndex: 100
                                 }}
                             >
-                                {(() => {
-                                    const sig = signatures.find(s => s.id == selectedSignature);
-                                    return sig ? (
-                                        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                                            <img
-                                                src={sig.signature_data}
-                                                alt="Signature"
-                                                style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
-                                            />
-                                            <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#4a00e0', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                                <FaPenNib size={10} />
-                                            </div>
-                                        </div>
-                                    ) : null;
-                                })()}
+                                <img
+                                    src={selectedTemplateData.signature_data}
+                                    alt="Signature"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
+                                />
+                                <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#4a00e0', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                    <FaPenNib size={10} />
+                                </div>
                             </Rnd>
                         )}
+
+                        {/* Placed Signatures on Current Page */}
+                        {currentPageSignatures.map(sig => (
+                            <div
+                                key={sig.id}
+                                style={{
+                                    position: 'absolute',
+                                    left: sig.x * pdfPageSize.width * scale,
+                                    top: sig.y * pdfPageSize.height * scale,
+                                    width: sig.w * pdfPageSize.width * scale,
+                                    height: sig.h * pdfPageSize.height * scale,
+                                    border: selectedPlacedSignatureId === sig.id ? '2px solid #10b981' : '2px solid transparent',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    background: selectedPlacedSignatureId === sig.id ? 'rgba(16, 185, 129, 0.05)' : 'transparent',
+                                    transition: 'all 0.2s',
+                                    zIndex: selectedPlacedSignatureId === sig.id ? 50 : 10
+                                }}
+                                onClick={() => setSelectedPlacedSignatureId(sig.id)}
+                            >
+                                <img src={sig.signature_data} alt="Placed Sig" style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }} />
+                                {selectedPlacedSignatureId === sig.id && (
+                                    <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#10b981', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
+                                        <FaCheck size={10} />
+                                    </div>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
 
@@ -223,84 +332,137 @@ const DocumentSigner = () => {
                 display: 'flex',
                 flexDirection: 'column',
                 boxShadow: '-4px 0 20px rgba(0,0,0,0.02)',
-                zIndex: 30
+                zIndex: 30,
+                overflowY: 'auto'
             }}>
                 <div style={{ padding: '2rem', borderBottom: '1px solid #f3f4f6' }}>
                     <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#111827', marginBottom: '0.5rem' }}>Sign Document</h3>
-                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Select a signature and place it on the document.</p>
+                    <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Select a signature template, then perform actions.</p>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto', padding: '2rem' }}>
+                <div style={{ flex: 1, padding: '2rem' }}>
                     <div style={{ marginBottom: '2rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                            <label style={{ fontWeight: 600, color: '#374151' }}>Your Signatures</label>
+                            <label style={{ fontWeight: 600, color: '#374151' }}>Saved Signatures</label>
                             <button onClick={() => navigate('/create-signature')} style={{ fontSize: '0.85rem', color: '#4a00e0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>+ Create New</button>
                         </div>
 
                         {/* Signature Grid */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                            {signatures.length > 0 ? signatures.map(sig => (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxHeight: '200px', overflowY: 'auto', marginBottom: '1rem' }}>
+                            {savedSignatures.length > 0 ? savedSignatures.map(sig => (
                                 <div
                                     key={sig.id}
-                                    onClick={() => setSelectedSignature(sig.id)}
+                                    onClick={() => setSelectedSavedSignature(sig.id)}
                                     style={{
-                                        border: selectedSignature === sig.id ? '2px solid #4a00e0' : '1px solid #e5e7eb',
+                                        border: selectedSavedSignature === sig.id ? '2px solid #4a00e0' : '1px solid #e5e7eb',
                                         borderRadius: '12px',
                                         padding: '1rem',
                                         cursor: 'pointer',
-                                        background: selectedSignature === sig.id ? 'rgba(74, 0, 224, 0.03)' : 'white',
+                                        background: selectedSavedSignature === sig.id ? 'rgba(74, 0, 224, 0.03)' : 'white',
                                         transition: 'all 0.2s ease',
                                         position: 'relative',
-                                        height: '100px',
+                                        height: '80px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center'
                                     }}
                                 >
                                     <img src={sig.signature_data} alt="Sig" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
-                                    {selectedSignature === sig.id && (
-                                        <div style={{ position: 'absolute', top: '8px', right: '8px', color: '#4a00e0' }}>
-                                            <FaCheckCircle size={16} />
+                                    {selectedSavedSignature === sig.id && (
+                                        <div style={{ position: 'absolute', top: '4px', right: '4px', color: '#4a00e0' }}>
+                                            <FaCheckCircle size={14} />
                                         </div>
                                     )}
                                 </div>
                             )) : (
-                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
-                                    <p>No signatures found.</p>
-                                    <button onClick={() => navigate('/create-signature')} style={{ marginTop: '0.5rem', color: '#4a00e0', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>Create one now</button>
+                                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '1rem', background: '#f9fafb', borderRadius: '12px', color: '#6b7280' }}>
+                                    <p>No saved signatures.</p>
                                 </div>
                             )}
                         </div>
+
+                        {/* Add Button */}
+                        <button
+                            onClick={handleAddSignature}
+                            disabled={!selectedSavedSignature || documentData.status === 'signed'}
+                            className="btn-primary"
+                            style={{
+                                width: '100%',
+                                padding: '0.8rem',
+                                borderRadius: '10px',
+                                background: !selectedSavedSignature || documentData.status === 'signed' ? '#e5e7eb' : '#4a00e0',
+                                color: !selectedSavedSignature || documentData.status === 'signed' ? '#9ca3af' : 'white',
+                                cursor: !selectedSavedSignature || documentData.status === 'signed' ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            + Add Selected to Page {pageNumber}
+                        </button>
                     </div>
 
-                    <div style={{ background: '#eff6ff', borderRadius: '12px', padding: '1.5rem', display: 'flex', gap: '1rem' }}>
-                        <FaInfoCircle style={{ color: '#3b82f6', fontSize: '1.2rem', marginTop: '2px' }} />
-                        <div>
-                            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e40af', marginBottom: '0.5rem' }}>How to sign</h4>
-                            <ul style={{ paddingLeft: '1rem', color: '#1e3a8a', fontSize: '0.9rem', margin: 0, lineHeight: 1.6 }}>
-                                <li>Select a signature from the grid above.</li>
-                                <li>Drag the box on the document to position it.</li>
-                                <li>Resize using the corners if needed.</li>
-                            </ul>
-                        </div>
+                    {/* Placed Signatures List */}
+                    <div>
+                        <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#374151', marginBottom: '1rem' }}>Placed Signatures ({placedSignatures.length})</h4>
+                        {placedSignatures.length === 0 ? (
+                            <div style={{ padding: '1.5rem', background: '#f9fafb', borderRadius: '12px', textAlign: 'center', color: '#6b7280' }}>
+                                <p style={{ fontSize: '0.9rem' }}>No signatures placed yet.</p>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '300px', overflowY: 'auto' }}>
+                                {placedSignatures.map(sig => (
+                                    <div
+                                        key={sig.id}
+                                        style={{
+                                            border: selectedPlacedSignatureId === sig.id ? '2px solid #10b981' : '1px solid #e5e7eb',
+                                            borderRadius: '12px',
+                                            padding: '0.75rem',
+                                            background: selectedPlacedSignatureId === sig.id ? 'rgba(16, 185, 129, 0.03)' : 'white',
+                                            cursor: 'pointer',
+                                            transition: 'all 0.2s'
+                                        }}
+                                        onClick={() => {
+                                            setSelectedPlacedSignatureId(sig.id);
+                                            setPageNumber(sig.page);
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#166534' }}>Page {sig.page}</span>
+                                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDuplicateSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Duplicate">
+                                                    <FaCopy size={12} />
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleApplyToAllPages(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#f3f4f6', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#4b5563' }} title="Apply to all pages">
+                                                    <FaLayerGroup size={12} />
+                                                </button>
+                                                <button onClick={(e) => { e.stopPropagation(); handleDeletePlacedSignature(sig.id); }} style={{ padding: '0.25rem 0.5rem', background: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#dc2626' }} title="Delete">
+                                                    <FaTrash size={12} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div style={{ height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f9fafb', borderRadius: '8px', padding: '0.25rem' }}>
+                                            <img src={sig.signature_data} alt="Sig" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 <div style={{ padding: '2rem', borderTop: '1px solid #f3f4f6', background: 'white' }}>
                     <button
-                        onClick={handleSign}
-                        disabled={!selectedSignature}
+                        onClick={handleFinalize}
+                        disabled={placedSignatures.length === 0}
                         style={{
                             width: '100%',
                             padding: '1rem',
-                            background: selectedSignature ? 'linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)' : '#e5e7eb',
-                            color: selectedSignature ? 'white' : '#9ca3af',
+                            background: placedSignatures.length > 0 ? 'linear-gradient(135deg, #4a00e0 0%, #8e2de2 100%)' : '#e5e7eb',
+                            color: placedSignatures.length > 0 ? 'white' : '#9ca3af',
                             border: 'none',
                             fontSize: '1.1rem',
                             fontWeight: 700,
-                            cursor: selectedSignature ? 'pointer' : 'not-allowed',
+                            cursor: placedSignatures.length > 0 ? 'pointer' : 'not-allowed',
                             borderRadius: '12px',
-                            boxShadow: selectedSignature ? '0 10px 20px -5px rgba(74, 0, 224, 0.4)' : 'none',
+                            boxShadow: placedSignatures.length > 0 ? '0 10px 20px -5px rgba(74, 0, 224, 0.4)' : 'none',
                             transition: 'all 0.3s ease',
                             display: 'flex',
                             alignItems: 'center',
@@ -308,7 +470,7 @@ const DocumentSigner = () => {
                             gap: '0.5rem'
                         }}
                     >
-                        <FaPenNib /> Sign Document
+                        <FaPenNib /> Finalize & Download
                     </button>
                 </div>
             </div>
@@ -343,7 +505,6 @@ const navBtnStyle = {
     boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
 };
 
-// Helper component for check icon
 const FaCheckCircle = ({ size }) => (
     <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height={size} width={size} xmlns="http://www.w3.org/2000/svg">
         <path d="M504 256c0 136.967-111.033 248-248 248S8 392.967 8 256 119.033 8 256 8s248 111.033 248 248zM227.314 387.314l184-184c6.248-6.248 6.248-16.379 0-22.627l-22.627-22.627c-6.248-6.249-16.379-6.249-22.628 0L216 308.118l-70.059-70.059c-6.248-6.248-16.379-6.248-22.628 0l-22.627 22.627c-6.248 6.248-6.248 16.379 0 22.627l104 104c6.249 6.249 16.379 6.249 22.628 0z"></path>

@@ -22,4 +22,12 @@ class Document extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    /**
+     * Get the signatures for the document.
+     */
+    public function signatures()
+    {
+        return $this->hasMany(DocumentSignature::class);
+    }
 }

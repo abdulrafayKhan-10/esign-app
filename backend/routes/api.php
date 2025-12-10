@@ -21,8 +21,17 @@ Route::post('/contact', [ContactController::class, 'store']);
 // Guest Routes
 Route::post('/guest/documents/upload', [DocumentController::class, 'guestUpload']);
 Route::get('/guest/documents/{id}', [DocumentController::class, 'guestGet']);
-Route::post('/guest/documents/{id}/sign', [DocumentController::class, 'guestSign']);
+Route::post('/guest/documents/{id}/sign', [DocumentController::class, 'guestSign']); // Legacy - kept for backward compatibility
 Route::get('/guest/documents/{id}/download', [DocumentController::class, 'guestDownload']);
+
+// New Multi-Signature Routes (Guest)
+Route::post('/guest/documents/{id}/add-signature', [DocumentController::class, 'guestAddSignature']);
+Route::get('/guest/documents/{id}/signatures', [DocumentController::class, 'guestGetSignatures']);
+Route::delete('/guest/documents/{id}/signatures/{signatureId}', [DocumentController::class, 'guestDeleteSignature']);
+Route::post('/guest/documents/{id}/signatures/{signatureId}/duplicate', [DocumentController::class, 'guestDuplicateSignature']);
+Route::post('/guest/documents/{id}/signatures/{signatureId}/apply-all', [DocumentController::class, 'guestApplyToAllPages']);
+Route::post('/guest/documents/{id}/finalize', [DocumentController::class, 'guestFinalize']);
+
 
 // Protected Routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -40,6 +49,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/documents', [DocumentController::class, 'index']);
     Route::post('/documents/upload', [DocumentController::class, 'upload']);
     Route::delete('/documents/{id}', [DocumentController::class, 'destroy']);
-    Route::post('/documents/{id}/sign', [DocumentController::class, 'sign']);
+    Route::post('/documents/{id}/sign', [DocumentController::class, 'sign']); // Legacy
     Route::get('/documents/{id}/download', [DocumentController::class, 'download']);
+
+    // Authenticated Multi-Signature Routes
+    Route::post('/documents/{id}/add-signature', [DocumentController::class, 'addSignature']);
+    Route::get('/documents/{id}/signatures', [DocumentController::class, 'getSignatures']);
+    Route::delete('/documents/{id}/signatures/{signatureId}', [DocumentController::class, 'deleteSignaturePlace']);
+    Route::post('/documents/{id}/signatures/{signatureId}/duplicate', [DocumentController::class, 'duplicateSignature']);
+    Route::post('/documents/{id}/signatures/{signatureId}/apply-all', [DocumentController::class, 'applyToAllPages']);
+    Route::post('/documents/{id}/finalize', [DocumentController::class, 'finalize']);
 });
