@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('document_signatures', function (Blueprint $table) {
             $table->id();
             $table->foreignId('document_id')->constrained()->onDelete('cascade');
-            $table->text('signature_data'); // Base64 encoded signature image
+            $table->longText('signature_data'); // Base64 encoded signature image
             $table->integer('page')->default(1); // Page number where signature is placed
             $table->decimal('x', 8, 6); // Relative X position (0-1)
             $table->decimal('y', 8, 6); // Relative Y position (0-1)
