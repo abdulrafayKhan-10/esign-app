@@ -231,40 +231,8 @@ const DocumentSigner = () => {
                             />
                         </Document>
 
-                        {/* Draggable Template Overlay */}
-                        {selectedTemplateData && pdfPageSize && documentData.status !== 'signed' && (
-                            <Rnd
-                                size={{ width: size.width * scale, height: size.height * scale }}
-                                position={{ x: position.x * scale, y: position.y * scale }}
-                                onDragStop={(e, d) => {
-                                    setPosition({ x: d.x / scale, y: d.y / scale });
-                                }}
-                                onResizeStop={(e, direction, ref, delta, position) => {
-                                    setSize({
-                                        width: parseInt(ref.style.width) / scale,
-                                        height: parseInt(ref.style.height) / scale,
-                                    });
-                                    setPosition({ x: position.x / scale, y: position.y / scale });
-                                }}
-                                bounds="parent"
-                                style={{
-                                    border: '2px dashed #4a00e0',
-                                    background: 'rgba(74, 0, 224, 0.1)',
-                                    cursor: 'move',
-                                    borderRadius: '4px',
-                                    zIndex: 100
-                                }}
-                            >
-                                <img
-                                    src={selectedTemplateData.signature_data}
-                                    alt="Signature"
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain', pointerEvents: 'none' }}
-                                />
-                                <div style={{ position: 'absolute', top: '-10px', right: '-10px', background: '#4a00e0', color: 'white', borderRadius: '50%', padding: '4px', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}>
-                                    <FaPenNib size={10} />
-                                </div>
-                            </Rnd>
-                        )}
+                        {/* Ghost/Preview Signature removed as per user request */}
+                        {/* Only Placed Signatures are shown below */}
 
                         {/* Placed Signatures on Current Page */}
                         {/* Placed Signatures on Current Page */}
