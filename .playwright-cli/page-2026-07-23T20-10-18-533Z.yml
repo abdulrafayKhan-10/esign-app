@@ -1,0 +1,93 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e5]:
+        - link "SIGDOC_" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - generic [ref=e9]:
+          - link "Sys.Home" [ref=e10] [cursor=pointer]:
+            - /url: /
+          - link "Features" [ref=e11] [cursor=pointer]:
+            - /url: /features
+          - generic [ref=e12]:
+            - link "AUTH" [ref=e13] [cursor=pointer]:
+              - /url: /login
+            - link "INITIALIZE" [ref=e14] [cursor=pointer]:
+              - /url: /register
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: MENU
+        - button [ref=e18] [cursor=pointer]
+      - generic [ref=e21]:
+        - link "Home" [ref=e22] [cursor=pointer]:
+          - /url: /
+        - link "Features" [ref=e23] [cursor=pointer]:
+          - /url: /features
+        - link "Auth" [ref=e25] [cursor=pointer]:
+          - /url: /login
+        - link "Initialize" [ref=e26] [cursor=pointer]:
+          - /url: /register
+    - main [ref=e27]:
+      - generic [ref=e30]:
+        - generic [ref=e32]:
+          - generic [ref=e33]: System Active
+          - heading "SECURE DOCUMENT EXECUTION." [level=1] [ref=e36]: SECUREDOCUMENTEXECUTION.
+          - paragraph [ref=e37]: Cryptographically secure, legally binding document signatures. Designed for absolute precision and zero latency.
+          - generic [ref=e38]:
+            - link "[ EXECUTE SIGNATURE ]" [ref=e39] [cursor=pointer]:
+              - /url: /guest/upload
+            - link "INITIALIZE ACCOUNT" [ref=e40] [cursor=pointer]:
+              - /url: /register
+        - generic [ref=e51]:
+          - generic [ref=e52]: AUTHORIZATION REQUIRED
+          - generic [ref=e53]: John Doe
+    - contentinfo [ref=e55]:
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - generic [ref=e59]: Signify
+            - paragraph [ref=e63]: Professional document signing solution. Secure, fast, and easy to use.
+          - generic [ref=e64]:
+            - heading "Quick Links" [level=4] [ref=e65]
+            - list [ref=e66]:
+              - listitem [ref=e67]:
+                - link "Home" [ref=e68] [cursor=pointer]:
+                  - /url: /
+              - listitem [ref=e69]:
+                - link "Features" [ref=e70] [cursor=pointer]:
+                  - /url: /features
+              - listitem [ref=e71]:
+                - link "About Us" [ref=e72] [cursor=pointer]:
+                  - /url: /about
+              - listitem [ref=e73]:
+                - link "Contact" [ref=e74] [cursor=pointer]:
+                  - /url: /contact
+          - generic [ref=e75]:
+            - heading "Resources" [level=4] [ref=e76]
+            - list [ref=e77]:
+              - listitem [ref=e78]:
+                - link "Privacy Policy" [ref=e79] [cursor=pointer]:
+                  - /url: /privacy
+              - listitem [ref=e80]:
+                - link "Terms of Service" [ref=e81] [cursor=pointer]:
+                  - /url: /terms
+          - generic [ref=e82]:
+            - heading "Connect With Us" [level=4] [ref=e83]
+            - generic [ref=e84]:
+              - link [ref=e85] [cursor=pointer]:
+                - /url: https://www.facebook.com/worldoftech.softwarehouse.official/
+              - link [ref=e88] [cursor=pointer]:
+                - /url: https://pk.linkedin.com/company/world-of-tech-pvt-ltd
+              - link [ref=e91] [cursor=pointer]:
+                - /url: https://www.instagram.com/world_of_tech_official/
+            - generic [ref=e94]:
+              - heading "World Of Tech Pvt Ltd" [level=5] [ref=e95]
+              - paragraph [ref=e96]: Empowering digital transformation through innovative solutions
+            - link "info@worldoftech.company" [ref=e100] [cursor=pointer]:
+              - /url: mailto:info@worldoftech.company
+        - paragraph [ref=e102]: © 2026 World Of Tech Pvt Ltd. All rights reserved.
+        - paragraph [ref=e104]:
+          - strong [ref=e105]: Signify
+          - text: "- Free online document signing, digital signature creator, and secure e-sign solution. Sign PDF, DOCX documents online without printing. Create electronic signatures instantly. Secure document management for professionals, freelancers, and businesses. Legally binding e-signatures compliant with ESIGN and UETA. Streamline your workflow, reduce paper usage, and sign documents from anywhere, on any device. Supports multiple file formats, audit trails, and secure storage. No account required for quick signing."
+  - region "Notifications Alt+T"
+  - button "Cookie Settings" [ref=e106] [cursor=pointer]
